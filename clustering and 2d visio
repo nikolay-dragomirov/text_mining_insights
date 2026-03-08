@@ -1,0 +1,70 @@
+# ----------------------------------------
+# Text Clustering Pipeline (Skeleton) + 2D visio
+# ----------------------------------------
+
+# 1) Vectorize keywords using TF‑IDF
+vectorizer = TfidfVectorizer(
+    stop_words='english',
+    max_features=max_features
+)
+
+X = vectorizer.fit_transform(base_df['keywords_str'])
+
+# 2) K-Means clustering in TF‑IDF space
+kmeans = KMeans(
+    n_clusters=clusters_nm,
+    random_state=42,
+    n_init=10,
+    init='k-means++'
+)
+base_df['Cluster_kw'] = kmeans.fit_predict(X)
+
+# 3) Dimensionality reduction for visualization (PCA only for plotting)
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X.toarray())
+
+# 4) 2D visualization of clusters
+plt.figure(figsize=(10, 8))
+plt.scatter(
+    X_pca[:, 0],
+    X_pca[:, 1],
+    c=base_df['Cluster_kw'],
+    cmap='viridis',
+    alpha=0.7
+)
+
+# Add cluster labels
+for i in range(clusters_nm):
+    plt.text(
+        X_pca[base_df['Cluster_kw'] == i, 0].mean(),
+        X_pca[base_df['Cluster_kw'] == i, 1].mean(),
+        f"Cluster {i}",
+        fontsize=18,
+        color='black',
+        ha='center',
+        va='center'
+    )
+
+plt.title('K-Means clustering of keywords in 2D PCA space')
+plt.xlabel('Principal Component 1')
+plt.ylabel('Principal Component 2')
+plt.savefig('clusters_keywords_2d.png', dpi=300)
+
+plt.show()
+
+# 5) Principal components matrix (PCA loadings)
+principalComponents = pca.components_
+df_pca = pd.DataFrame(
+    principalComponents,
+    columns=vectorizer.get_feature_names_out()
+)
+df_pca.index.name = 'Principal Component'
+
+# 6) Top contributing keywords for PCA axes
+features = vectorizer.get_feature_names_out()
+top_pca1_keywords = [features[i] for i in principalComponents[0].argsort()[-10:]]
+top_pca2_keywords = [features[i] for i in principalComponents[1].argsort()[-10:]]
+
+# (Optional) print these if needed
+# print("Top 10 PCA1:", top_pca1_keywords)
+# print("Top 10 PCA2:", top_pca2_keywords)
