@@ -1,0 +1,53 @@
+# 3D PCA visualization + top terms per PC (assumes X, base_df['Cluster_kw'], vectorizer exist)
+
+# PCA to 3 components (visualization only)
+pca = PCA(n_components=3, random_state=42)
+X_pca_3d = pca.fit_transform(X.toarray())
+
+print(f"PCA components shape: {pca.components_.shape}")
+
+# 3D scatter plot in PCA space
+out_path = 'clusters_keywords_3d.png'
+os.makedirs(os.path.dirname(out_path), exist_ok=True)
+
+fig = plt.figure(figsize=(12, 10))
+ax = fig.add_subplot(111, projection='3d')
+
+scatter = ax.scatter(
+    X_pca_3d[:, 0], X_pca_3d[:, 1], X_pca_3d[:, 2],
+    c=base_df['Cluster_kw'], cmap='viridis', alpha=0.7
+)
+
+# Annotate cluster centroids (mean position per cluster in PCA space)
+unique_clusters = base_df['Cluster_kw'].nunique()
+for i in range(unique_clusters):
+    mask = (base_df['Cluster_kw'] == i)
+    ax.text(
+        X_pca_3d[mask, 0].mean(),
+        X_pca_3d[mask, 1].mean(),
+        X_pca_3d[mask, 2].mean(),
+        f"Cluster {i}",
+        fontsize=16, color='black', ha='center', va='center'
+    )
+
+ax.set_title('K-Means clustering of keywords in 3D PCA space', fontsize=18, color='black')
+ax.set_xlabel('Principal Component 1')
+ax.set_ylabel('Principal Component 2')
+ax.set_zlabel('Principal Component 3')
+plt.colorbar(scatter, label='Cluster')
+plt.tight_layout()
+plt.savefig(out_path, dpi=300, bbox_inches='tight')
+plt.show()
+
+# Top contributing keywords for each principal component
+features = vectorizer.get_feature_names_out()
+if pca.components_.shape[0] >= 3:
+    top_pca1_keywords = [features[i] for i in pca.components_[0].argsort()[-10:]]
+    top_pca2_keywords = [features[i] for i in pca.components_[1].argsort()[-10:]]
+    top_pca3_keywords = [features[i] for i in pca.components_[2].argsort()[-10:]]
+
+    print("Top 10 Keywords for PCA1:", top_pca1_keywords)
+    print("Top 10 Keywords for PCA2:", top_pca2_keywords)
+    print("Top 10 Keywords for PCA3:", top_pca3_keywords)
+else:
+    print("PCA did not compute 3 components as intended.")
